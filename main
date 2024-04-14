@@ -1,0 +1,171 @@
+local player = game.Players:WaitForChild('TobiLikesGuys')
+local character = workspace:WaitForChild('TobiLikesGuys')
+local character = workspace:WaitForChild(script.Target.Value)
+local root = character:WaitForChild('HumanoidRootPart')
+local UserInputService = game:GetService("UserInputService")
+
+
+local userInputService = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+
+local function getRandomBrickColor()
+	local r = (1 / 255) * math.random(0, 255)
+	local g = (1 / 255) * math.random(0, 255)
+	local b = (1 / 255) * math.random(0, 255)
+
+	return BrickColor.new(r, g, b)
+end
+
+local function createConeAroundPart(centerPart, baseRadius, segments, coneHeight, color)
+	local container = Instance.new("Folder")
+	container.Name = "Cone"
+
+	local maxHeight = coneHeight
+	local segmentHeight = maxHeight / segments
+
+	local bottomCylinder = Instance.new("Part")
+	bottomCylinder.Size = Vector3.new(segmentHeight / 2, baseRadius * 2, baseRadius * 2)
+	bottomCylinder.Position = centerPart - Vector3.new(0, segmentHeight / -2, 0)
+	bottomCylinder.Anchored = false
+	bottomCylinder.Parent = container
+	bottomCylinder.Shape = Enum.PartType.Cylinder
+	bottomCylinder.Material = Enum.Material.SmoothPlastic
+	bottomCylinder.Name = 'Bottom'
+	bottomCylinder.CanCollide = false
+
+	bottomCylinder.BrickColor = color
+
+	bottomCylinder.CFrame = CFrame.new(bottomCylinder.Position) * CFrame.Angles(0, math.pi / 2, 0)
+
+	bottomCylinder.Transparency = 0.7
+
+	for i = 1, segments do
+		local radius = baseRadius - (i - 1) * (baseRadius / segments)
+		local angleIncrement = 2 * math.pi / segments
+
+		for j = 1, segments do
+			local angle = j * angleIncrement
+			local x = radius * math.cos(angle)
+			local z = radius * math.sin(angle)
+
+			local cylinder = Instance.new("Part")
+
+			cylinder.Size = Vector3.new(radius / 1.5, segmentHeight, radius)
+			cylinder.Position = centerPart + Vector3.new(x, (i - 1) * segmentHeight + (segmentHeight / 2), z)
+			cylinder.Anchored = false
+			cylinder.Parent = container
+			cylinder.Shape = Enum.PartType.Cylinder
+			cylinder.Material = Enum.Material.SmoothPlastic
+			cylinder.Transparency = 0.8
+			cylinder.CanCollide = false
+
+			cylinder.BrickColor = color
+
+			local lookAtCFrame = CFrame.lookAt(cylinder.Position, centerPart)
+			local lookAtRotation = lookAtCFrame - lookAtCFrame.p
+
+			cylinder.CFrame = CFrame.new(cylinder.Position) * lookAtRotation
+
+			local weld = Instance.new('WeldConstraint')
+			weld.Parent = cylinder
+			weld.Part0 = bottomCylinder
+			weld.Part1 = cylinder
+		end
+	end
+
+	return container
+end
+
+
+local color = getRandomBrickColor()
+
+
+local sphere = Instance.new('Part')
+sphere.Name = 'Head'
+sphere.Shape = Enum.PartType.Ball
+sphere.Size = Vector3.new(1.5, 1.5, 1.5)
+
+sphere.Parent = workspace
+sphere.CFrame = root.CFrame
+sphere.CanCollide = false
+sphere.Anchored = false
+sphere.Material = Enum.Material.SmoothPlastic
+sphere.Transparency = 0.5
+sphere.BrickColor = color
+
+local cylinder = Instance.new('Part')
+cylinder.Name = 'Shaft'
+cylinder.Shape = Enum.PartType.Cylinder
+cylinder.Size = Vector3.new(2, 0.2, 0.2)
+
+cylinder.Parent = sphere
+cylinder.CFrame = sphere.CFrame * CFrame.new(0, 0, 0)
+cylinder.CFrame = cylinder.CFrame * CFrame.Angles(0, math.rad(90), 0)
+cylinder.CanCollide = false
+cylinder.Anchored = false
+cylinder.Material = Enum.Material.SmoothPlastic
+cylinder.Transparency = 0.5
+cylinder.BrickColor = color
+
+local weld = Instance.new('WeldConstraint')
+weld.Part0 = sphere
+weld.Part1 = cylinder
+weld.Parent = sphere
+
+local cone = createConeAroundPart(cylinder.Position + Vector3.new(0, 1, 0), 0.20, 20, 0.75, color)
+
+local weld = Instance.new('WeldConstraint')
+weld.Part0 = cylinder
+weld.Part1 = cone.Bottom
+weld.Parent = cone.Bottom
+cone.Parent = sphere
+
+local weld = Instance.new('WeldConstraint')
+weld.Part0 = root
+weld.Part1 = sphere
+weld.Parent = sphere
+
+sphere.Position = root.Position
+
+
+for _, child in ipairs(sphere.Cone:GetChildren()) do
+	if child:IsA("WeldConstraint") ~= true and child:IsA("Folder") ~= true then
+		local relativePosition = child.Position - sphere.Position
+		local rotationMatrix = CFrame.Angles(math.rad(90), 0, 0)
+		local rotatedPosition = rotationMatrix * relativePosition
+		child.Position = rotatedPosition + sphere.Position
+	end
+end
+
+
+character.Humanoid.RequiresNeck = false
+
+character.Head.Neck.Part0 = sphere
+
+character.Head.Position = sphere.Position
+
+
+local spotLight = Instance.new('SpotLight')
+spotLight.Parent = sphere
+spotLight.Range = 5
+spotLight.Shadows = false
+spotLight.Brightness = 1
+print(color)
+spotLight.Color = Color3.new(color.Color.r, color.Color.b, color.Color.b)
+
+
+for _, part in ipairs(character:GetChildren()) do
+	if part:IsA('Accessory') then
+		part:Destroy()
+	elseif part:IsA('MeshPart') or part:IsA('Part') then
+		part.Transparency = 1
+	end
+end
+
+local head = character:FindFirstChild('Head')
+if head then
+	local face = head:FindFirstChild('face')
+	if face then
+		face:Destroy()
+	end
+end
